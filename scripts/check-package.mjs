@@ -15,6 +15,6 @@ function scan(dir) {
   }
 }
 scan(root);
-const p = JSON.parse(readFileSync(`${root}/plugin.json`));
+const p = JSON.parse(readFileSync(`${root}/.codex-plugin/plugin.json`));
 if (!/^\d+\.\d+\.\d+$/.test(p.version)) throw new Error('Expected a release version.');
 console.log(`Package checked: ${p.name} ${p.version}, ${count} files; no deployment addresses, local credentials or private paths.`);

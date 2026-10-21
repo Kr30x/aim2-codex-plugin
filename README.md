@@ -64,7 +64,7 @@ npm run check
 
 Source is TypeScript. `npm run build` produces the standalone
 `plugins/aim2/server/index.cjs`; commit the generated bundle with its source.
-Increment `package.json`, the lockfile and `plugins/aim2/plugin.json` together.
+Increment `package.json`, the lockfile and `plugins/aim2/.codex-plugin/plugin.json` together.
 The release workflow validates a `vX.Y.Z` tag, checks that its bundle is
 reproducible, creates a ZIP and checksum, publishes a GitHub Release and advances
 `stable` only after validation. Never commit deployment configuration or API data.

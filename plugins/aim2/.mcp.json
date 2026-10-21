@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "aim2": {
+      "command": "/bin/sh",
+      "args": [
+        "${PLUGIN_ROOT}/scripts/launch.sh"
+      ],
+      "cwd": "${PLUGIN_ROOT}"
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync, readFileSync, renameSync, rmSync } from 'node:fs';
+import { existsSync, realpathSync, mkdirSync, writeFileSync, readFileSync, renameSync, rmSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,17 +34,31 @@ function updaterCopy() {
   if (source !== target) atomic(target, readFileSync(source, 'utf8'));
   return target;
 }
+function nodeExecutable() {
+  // Keep a stable package-manager symlink when it resolves to this runtime.
+  for (const candidate of ['/opt/homebrew/bin/node', '/usr/local/bin/node', '/usr/bin/node']) {
+    try { if (realpathSync(candidate) === realpathSync(process.execPath)) return candidate; } catch {}
+  }
+  return process.execPath;
+}
+function refreshUpdater(current) {
+  const source = current.source?.path;
+  if (!source) return;
+  const manifest = JSON.parse(readFileSync(join(source, '.codex-plugin', 'plugin.json'), 'utf8'));
+  if (manifest.name !== 'aim2' || manifest.version !== current.version) throw new Error('Updated package identity mismatch.');
+  atomic(join(root, 'updater.mjs'), readFileSync(join(source, 'scripts', 'manage.mjs'), 'utf8'));
+}
 function schedule(bin) {
   const updater = updaterCopy();
   const escape = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c]);
   if (process.platform === 'darwin') {
-    const xml = `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>Label</key><string>${label}</string><key>ProgramArguments</key><array><string>${escape(process.execPath)}</string><string>${escape(updater)}</string><string>update</string></array><key>EnvironmentVariables</key><dict><key>AIM2_CODEX_BIN</key><string>${escape(bin)}</string></dict><key>StartInterval</key><integer>3600</integer><key>RunAtLoad</key><true/><key>StandardOutPath</key><string>${escape(join(root, 'updater.log'))}</string><key>StandardErrorPath</key><string>${escape(join(root, 'updater-error.log'))}</string></dict></plist>\n`;
+    const xml = `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>Label</key><string>${label}</string><key>ProgramArguments</key><array><string>${escape(nodeExecutable())}</string><string>${escape(updater)}</string><string>update</string></array><key>EnvironmentVariables</key><dict><key>AIM2_CODEX_BIN</key><string>${escape(bin)}</string></dict><key>StartInterval</key><integer>3600</integer><key>RunAtLoad</key><true/><key>StandardOutPath</key><string>${escape(join(root, 'updater.log'))}</string><key>StandardErrorPath</key><string>${escape(join(root, 'updater-error.log'))}</string></dict></plist>\n`;
     atomic(plist, xml);
     spawnSync('launchctl', ['bootout', `gui/${process.getuid()}/${label}`], { encoding: 'utf8' });
     run('launchctl', ['bootstrap', `gui/${process.getuid()}`, plist], true);
   } else if (process.platform === 'linux') {
     const quote = s => '"' + s.replace(/[%\\"]/g, c => c === '%' ? '%%' : '\\' + c) + '"';
-    atomic(unit + '.service', `[Unit]\nDescription=Update AIM2 Codex plugin\n[Service]\nType=oneshot\nEnvironment=${quote('AIM2_CODEX_BIN=' + bin)}\nExecStart=${quote(process.execPath)} ${quote(updater)} update\n`, 0o600);
+    atomic(unit + '.service', `[Unit]\nDescription=Update AIM2 Codex plugin\n[Service]\nType=oneshot\nEnvironment=${quote('AIM2_CODEX_BIN=' + bin)}\nExecStart=${quote(nodeExecutable())} ${quote(updater)} update\n`, 0o600);
     atomic(unit + '.timer', '[Unit]\nDescription=Hourly AIM2 plugin updates\n[Timer]\nOnBootSec=5m\nOnUnitActiveSec=1h\nPersistent=true\n[Install]\nWantedBy=timers.target\n');
     run('systemctl', ['--user', 'daemon-reload'], true); run('systemctl', ['--user', 'enable', '--now', 'aim2-codex-update.timer'], true);
   } else throw new Error('Automatic scheduling supports macOS and Linux. Use update manually on other platforms.');
@@ -77,11 +91,13 @@ try {
       const previous = before.installed?.find(p => p.pluginId === selector);
       if (!previous) throw new Error('AIM2 was uninstalled; refusing to reinstall it automatically.');
       const refresh = JSON.parse(run(bin, ['plugin', 'marketplace', 'upgrade', marketplace, '--json'], true));
+      if (refresh.errors?.length) throw new Error('Marketplace upgrade reported errors; retry update after checking Codex.');
       // Refresh configured plugins without reinstalling: reinstalling could re-enable a user-disabled plugin.
       const after = JSON.parse(run(bin, ['plugin', 'list', '--marketplace', marketplace, '--json'], true));
       const current = after.installed?.find(p => p.pluginId === selector);
       if (!current) throw new Error('Marketplace refreshed but installed plugin could not be verified.');
       if (previous.enabled !== current.enabled) throw new Error('Unexpected plugin enabled-state change; inspect Codex settings.');
+      refreshUpdater(current);
       atomic(join(root, 'last-update.json'), JSON.stringify({ checkedAt: new Date().toISOString(), previousVersion: previous.version, installedVersion: current.version, enabled: current.enabled, refresh }, null, 2) + '\n');
       console.log(`AIM2 ${previous.version} -> ${current.version}; enabled=${current.enabled}. New chats load the installed version.`);
     } finally { rmSync(lock, { recursive: true }); }

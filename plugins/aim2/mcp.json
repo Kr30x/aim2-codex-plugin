@@ -1,7 +1,0 @@
-{
-  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
-  "mcpServers": { "aim2": {
-    "type": "stdio", "command": "/bin/sh",
-    "args": ["${PLUGIN_ROOT}/scripts/launch.sh"], "cwd": "${PLUGIN_ROOT}"
-  } }
-}
