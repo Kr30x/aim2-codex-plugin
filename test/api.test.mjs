@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -46,7 +46,8 @@ test('MCP package: catalogs, paging, guarded writes, deduplication and safe erro
   const config = { apiBase: `http://127.0.0.1:${http.address().port}/api`, tokenFile };
   writeFileSync(configPath, JSON.stringify(config), { mode: 0o600 });
   const client = new Client({ name: 'test', version: '1.0.0' });
-  const transport = new StdioClientTransport({ command: process.execPath, args: [resolve('plugins/aim2/server/index.cjs')], env: { ...process.env, AIM2_CONFIG: configPath }, stderr: 'pipe' });
+  const mcp = JSON.parse(readFileSync('plugins/aim2/.mcp.json')).mcpServers.aim2;
+  const transport = new StdioClientTransport({ command: mcp.command, args: mcp.args, cwd: resolve('plugins/aim2', mcp.cwd), env: { ...process.env, AIM2_CONFIG: configPath }, stderr: 'pipe' });
   try {
     await client.connect(transport);
     const tools = (await client.listTools()).tools;

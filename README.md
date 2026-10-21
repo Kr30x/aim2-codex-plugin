@@ -6,7 +6,7 @@ required. The package includes its MCP server and JavaScript dependencies.
 
 ## Install
 
-Requires Codex desktop or CLI, Git and Node.js 22+. macOS and Linux are supported.
+Requires Codex desktop or CLI, Git and Node.js 22.19+. macOS and Linux are supported.
 
 ```sh
 git clone --branch stable https://github.com/Kr30x/aim2-codex-plugin.git
@@ -28,7 +28,8 @@ node scripts/configure.mjs --api-base https://your-server.example/api --token-fi
 The API base includes the deployment's prefix, if any. Configuration lives at
 `~/.config/aim2-codex/config.json`; `AIM2_CONFIG` can override it. The plugin reads
 the key from the supplied file and never embeds it in a release. Remote HTTP
-requires explicit `--allow-http`; prefer HTTPS. A key has the account's permissions.
+requires explicit `--allow-http`; prefer HTTPS. A key has the account's permissions. The launcher includes the operating system's
+trusted CA store for corporate HTTPS certificates; TLS verification remains enabled.
 
 Ask Codex: “Use AIM2 to check my connection and show the basket catalog.”
 

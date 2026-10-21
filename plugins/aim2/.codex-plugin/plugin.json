@@ -1,6 +1,6 @@
 {
   "name": "aim2",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Work with AIM2 baskets, SERPsets, experiments and schedules through its API.",
   "author": {
     "name": "Kr30x"
