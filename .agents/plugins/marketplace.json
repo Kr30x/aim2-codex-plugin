@@ -1,0 +1,10 @@
+{
+  "name": "aim2-plugins",
+  "interface": { "displayName": "AIM2" },
+  "plugins": [{
+    "name": "aim2",
+    "source": { "source": "local", "path": "./plugins/aim2" },
+    "policy": { "installation": "AVAILABLE", "authentication": "ON_USE" },
+    "category": "Developer Tools"
+  }]
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "aim2",
+  "version": "0.1.1",
+  "description": "Work with AIM2 baskets, SERPsets, experiments and schedules through its API.",
+  "author": {
+    "name": "Kr30x"
+  },
+  "repository": "https://github.com/Kr30x/aim2-codex-plugin",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "AIM2",
+        "shortDescription": "Baskets, SERPsets, experiments and schedules",
+        "developerName": "Kr30x",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read",
+          "Write"
+        ]
+      }
+    }
+  }
+}

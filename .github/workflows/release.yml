@@ -1,0 +1,37 @@
+name: Release plugin
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+concurrency:
+  group: plugin-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Verify version and reproducible bundle
+        run: |
+          test "$GITHUB_REF_NAME" = "v$(node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')"
+          git diff --exit-code -- plugins/aim2/server/index.cjs
+          if git show-ref --verify --quiet refs/remotes/origin/stable; then
+            git merge-base --is-ancestor origin/stable HEAD
+          fi
+      - name: Publish release and advance stable
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          zip -qr aim2-plugin.zip plugins/aim2
+          sha256sum aim2-plugin.zip > SHA256SUMS
+          gh release create "$GITHUB_REF_NAME" aim2-plugin.zip SHA256SUMS --verify-tag --title "AIM2 plugin $GITHUB_REF_NAME" --generate-notes
+          git push origin HEAD:refs/heads/stable
